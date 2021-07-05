@@ -107,6 +107,35 @@
 ; [0.2709231708880665 0.2709231708880665]
 ; [0.2709231708880665 0.2709231708880665]]
 
-(time (matrix-mul (random-matrix 100 300) (random-matrix 300 200)))
+(time (def result-pure (matrix-mul (random-matrix 100 300) (random-matrix 300 200))))
 ; "Elapsed time: 817.241124 msecs"
-; => [...]
+
+(require '[uncomplicate.neanderthal [core :refer :all] [native :refer :all]])
+
+(def n-matrix-1 (dge 100 300 (repeat (* 100 300) (rand))))
+(def n-matrix-2 (dge 300 200 (repeat (* 300 200) (rand))))
+
+(time (def result-n (mm n-matrix-1 n-matrix-2)))
+; "Elapsed time: 0.980913 msecs"
+
+; Man erkennt direkt, dass diese Berechnung mit der neanderthal library geschwindigkeitsmäßig
+; in einer ganz anderen Liga als die naive Implementierung
+
+; Diese Geschwindigkeit kann noch erhöht werden, wenn man eine CUDA-fähige Graphikkarte
+; hat. Dann kann man die Berechnung auf die Graphikkarte verschieben, was durch deren besondere
+; auf parallele Berechnung ausgelegte Architektur zu noch viel schnelleren Berechnungen führt
+
+(use 'clojure.core.matrix)
+(use 'clojure.core.matrix.operators)
+
+(def m-matrix-1 (matrix (random-matrix 100 300)))
+(def m-matrix-2 (matrix (random-matrix 300 200)))
+
+(time (def result-m (mmul m-matrix-1 m-matrix-2)))
+; "Elapsed time: 524.244884 msecs"
+
+; Diese Berechnung zeigt, dass auch die standard Matrix library schneller als die
+; naive Implementierung ist aber nicht an des Geschwindigkeitsniveau der
+; Neandethaler library herankommt und das ohne Nutzung einer Graphikkarte
+
+
