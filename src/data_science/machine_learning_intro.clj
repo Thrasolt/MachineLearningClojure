@@ -1,4 +1,4 @@
-(ns data-science.data-science-intro)
+(ns data-science.machine-learning-intro)
 
 ; Mathematische Objekte und Operationen sind die Grundlage von allem was mit
 ; Data Science und Machine Learning zu tun hat.
@@ -137,5 +137,3 @@
 ; Diese Berechnung zeigt, dass auch die standard Matrix library schneller als die
 ; naive Implementierung ist aber nicht an des Geschwindigkeitsniveau der
 ; Neandethaler library herankommt und das ohne Nutzung einer Graphikkarte
-
-
