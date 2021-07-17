@@ -7,9 +7,9 @@
 ; Vektoren
 
 ; Vektoren sind die mathematischen Objekte, die das Fundament der modernen Datascience und
-; des Machine learnings bilden.
+; des Machine Learnings bilden.
 
-; In vielen anderen Sprachen, wie auch der Data Science Sprache python, muss bereits
+; In vielen anderen Sprachen, wie auch der Data Science Sprache schlechthin Python, muss man bereits
 ; an dieser Stelle anfangen andere Pakete wie Numpy zu verwenden in clojure kriegen wir
 ; das umsonst.
 
@@ -45,7 +45,7 @@
    [0 0 0 1 0]
    [0 0 0 0 1]])
 
-; Der wichtigste Anwendungsfall des Skalarproducts in Data Science und Machine Learning ist die
+; Der wichtigste Anwendungsfall des Skalarprodukts in Data Science und Machine Learning ist die
 ; Matrix-Vektor- oder Matrix-Matrix-Multiplikation.
 
 ; Matrix-Vektor-Multiplikation könnte man in Clojure so implementieren
@@ -110,6 +110,8 @@
 (time (def result-pure (matrix-mul (random-matrix 100 300) (random-matrix 300 200))))
 ; "Elapsed time: 817.241124 msecs"
 
+; Für wirklich große Matrizen, ist diese Berechnungszeit nicht akzeptabel
+
 (require '[uncomplicate.neanderthal [core :refer :all] [native :refer :all]])
 
 (def n-matrix-1 (dge 100 300 (repeat (* 100 300) (rand))))
@@ -119,9 +121,9 @@
 ; "Elapsed time: 0.980913 msecs"
 
 ; Man erkennt direkt, dass diese Berechnung mit der neanderthal library geschwindigkeitsmäßig
-; in einer ganz anderen Liga als die naive Implementierung
+; in einer ganz anderen Liga spielen als die naive Implementierung
 
-; Diese Geschwindigkeit kann noch erhöht werden, wenn man eine CUDA-fähige Graphikkarte
+; Diese Geschwindigkeit kann noch erhöht werden, wenn man eine gute Graphikkarte
 ; hat. Dann kann man die Berechnung auf die Graphikkarte verschieben, was durch deren besondere
 ; auf parallele Berechnung ausgelegte Architektur zu noch viel schnelleren Berechnungen führt
 
@@ -136,4 +138,6 @@
 
 ; Diese Berechnung zeigt, dass auch die standard Matrix library schneller als die
 ; naive Implementierung ist aber nicht an des Geschwindigkeitsniveau der
-; Neandethaler library herankommt und das ohne Nutzung einer Graphikkarte
+; Neandethaler library herankommt und das bereits ohne Nutzung einer Graphikkarte
+
+; Siehe ml_cortex.clj

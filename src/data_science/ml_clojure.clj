@@ -221,7 +221,6 @@
         ef1 (Math/exp (first output)) ef2 (Math/exp (second output))
         denominator (* (+ (* y1 ef1) (* y2 ef2)) (+ ef1 ef2))
         score-sum (+ ef1 ef2)]
-    (println denominator)
     [(/ (* ef1 (+ (* y2 ef2) (- (* y1 ef1) (* y1 score-sum))))
         denominator)
      (/ (* ef2 (+ (* y2 ef2) (- (* y1 ef1) (* y2 score-sum))))
@@ -370,6 +369,7 @@
 (def batch-size 100)
 (def batches (batch-ify training-set batch-size))
 
+; Finally we can activate the Training-Loop and train for 10 Epochs with a Learning rate of 0.05
 
 (training fc-nn-forward-training batches 0.05 10)
 ; ...
@@ -382,7 +382,7 @@
 (def training-predictions (fc-nn-forward @parameters training-input))
 (def training-pred-labels (mapv argmax training-predictions))
 
-(println (accuracy training-labels training-pred-labels))
+(accuracy training-labels training-pred-labels)
 ;=> 0.887
 
 (def validation-input (mapv (comp vec (partial take 2)) validation-set))

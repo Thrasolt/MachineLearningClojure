@@ -12,6 +12,10 @@
     [clojure.string :as str]
     ))
 
+; Wir haben in der vorherigen machine_learning_intro.clj gesehen, dass wir durch das Nutzen von schnellen
+; Matrixoperationen große Datenmengen verarbeiten können. Eine Library, die diesen Umstand nutzt ist die
+; Neural Network Library Cortex, die das Herzstück dieser Lerneinheit bildet.
+
 
 ; Der erste Schritt in diesem Machine Learning mit Clojure und Cortex tutorial besteht darin, das bekannte
 ; zweidimensionale Toy-dataset TwoMoons zu klassifizieren. Es besteht aus zwei opponierenden leicht versetzen
