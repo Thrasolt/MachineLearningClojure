@@ -8,15 +8,15 @@
     [incanter.charts :as inc-charts]
     ))
 
-; Um besser zu verstehen, was große Libraries wie Cortex machen, werden wir hier gemeinsame
+; Um besser zu verstehen, was große Libraries wie Cortex machen, werden wir hier gemeinsam
 ; einen rudimentären neuronalen Klassifizierer in reinem Clojure schreiben,
-; ohne die Hilfe von anderen Libraries. Dieser Klassifiziere soll dann das zweidimensionale Toy-dataset
-; TwoMoons klassifizieren
+; ohne die Hilfe von anderen Libraries. Dieser Klassifizierer soll dann das zweidimensionale Toy-dataset
+; TwoMoons klassifizieren.
 
 ; Grundlegende Operationen
 
 ; Zunächst müssen wir grundlegende Operation der Linearen Algebra definieren, denn die
-; Matrix-Vektor-Multiplikationen bilden die Grundlage aller neuronalen Netzwerke
+; Matrix-Vektor-Multiplikationen bilden die Grundlage aller neuronalen Netzwerke.
 
 (defn dot-product [vec1 vec2]
   (reduce + (map * vec1 vec2)))
@@ -62,19 +62,19 @@
 
 
 ; Neuronales Netz
-; Da das TwoMoon Dataset aus zwei-dimensionalen Punkten besteht, die in aus zwei verschiedenen
-; Klassen stammen, brauchen wir ein Neuronales Netzwerk, das zwei-dimensionale Punkte als Input
+; Da das TwoMoon Dataset aus zwei-dimensionalen Punkten besteht, die aus zwei verschiedenen
+; Klassen stammen, brauchen wir ein neuronales Netzwerk, das zwei-dimensionale Punkte als Input
 ; akzeptiert und auch einen zwei-dimensionale Vektor ausgibt, der aus Klassen-Scores besteht,
 ; die abgeben, wie sicher das Netzwerk ist, dass die Eingabe zur entsprechenden Klasse gehört.
-; Wir werden ein schlichtes Neuronales Netzwerk mit einem Hidden-Layer konstruieren, der aus
-; 16 Neuronen besteht und zwei dimensionale Punkte als Input akzeptiert und einen einen
-; Vektor mit zwei Klassen-Scores zurückgibt
+; Wir werden ein schlichtes neuronales Netzwerk mit einem Hidden-Layer konstruieren, der aus
+; 16 Neuronen besteht und zwei dimensionale Punkte als Input akzeptiert und einen Vektor mit
+; zwei Klassen-Scores zurückgibt.
 
 ; Weight Initialization
 ; Zunächst müssen wir die Weights und Biases der Neuronen in den beiden Layern initialisieren, es gibt
-; verschiedene Ansätze der Gewichts initialisierung. Wir verwenden an dieser Stelle die random Funktion
-; von Clojure und bilden diese auf einen Abschnitt zwischen -1 und 1 ab
-; Anschließen verkleinern wir diese Werte noch um, das Problem der exploding Gradients zu vermeiden
+; verschiedene Ansätze der Gewichts-Initialisierung. Wir verwenden an dieser Stelle die random Funktion
+; von Clojure und bilden diese auf einen Abschnitt zwischen -1 und 1 ab.
+; Anschließen verkleinern wir diese Werte noch um, das Problem der exploding Gradients zu vermeiden.
 
 (defn init-singly-entry []
   (* 0.01 (+ -1 (* 2 (Math/random)))))
@@ -88,50 +88,50 @@
 (defn zeros [rows columns]
   (vec (repeat rows (vec (repeat columns 0.0)))))
 
-; Wir legen zuerst die größe des Hidden Layer fest, die größer der anderen beiden ergeben sich
-; automatisch anhand der Dimensionen von Input und Output
+; Wir legen zuerst die größe des Hidden Layer fest, die Größe der anderen beiden ergeben sich
+; automatisch anhand der Dimensionen von Input und Output.
 
 (def hidden-layer-size 16)
 
-; Nun initialisieren wir die Weights und Biases die unserer Netzwerk definieren
+; Nun initialisieren wir die Weights und Biases, die unserer Netzwerk definieren.
 
 (def Weight1 (init-weights hidden-layer-size 2))
 (def bias1 (vec (repeat hidden-layer-size 0)))
 (def Weight2 (init-weights 2 hidden-layer-size))
 (def bias2 (vec (repeat 2 0)))
 
-; Da das Neuronale Netzwerk lernt, indem seine Gewichte und Biases verändert werden, speichern wir
-; diese als Map in einem Atom
+; Da das neuronale Netzwerk lernt, indem seine Gewichte und Biases verändert werden, speichern wir
+; diese als Map in einem Atom.
 
 (def parameters
   (atom {:weight1 Weight1 :weight2 Weight2 :bias1 bias1 :bias2 bias2}))
 
 ; Konstruktion des Netzwerks
 
-; Der grundlegende Baustein jeden Fully-Connected Neuronalen Netzes ist, der lineare Layer, der
+; Der grundlegende Baustein jeden Fully-Connected neuronalen Netzes ist, der lineare Layer, der
 ; aus einer Matrix-Vektor-Multiplikation besteht.
 
 (defn linear-layer [w1 b1 input]
   (->> input (matrix-vector-mul w1) (vector-addition b1)))
 
 ; Als nicht-lineare Komponente benutzen wir aufgrund der geringen Anzahl von Dimensionen
-; einen elementweisen Tangens Hyperbolikus, der die Ergebnisse des linearen Layers auf
-;Werte zwischen -1 und 1 abbildet.
+; einen elementweisen Tangens Hyperbolicus, der die Ergebnisse des linearen Layers auf
+; Werte zwischen -1 und 1 abbildet.
 
 (defn tanh-forward [input]
   (mapv (fn [element] (Math/tanh element)) input))
 
 ; Nach dem letzten linearen Layer transformieren den Output mit der Softmax-Funktion
 ; und erhalten damit Klassen-Scores, die Werte zwischen 0 und 1 annehmen, indem wir
-; den den Output des Hidden Layers exponenzieren aufsummieren und dann mit den exponenzierten
-; Klassen-scores ins Verhältnis setzen .
+; den den Output des Hidden Layers exponenzieren und aufsummieren und dann mit den
+; exponenzierten Klassen-scores ins Verhältnis setzen.
 
 (defn softmax [input]
   (let [den (reduce (fn [acc el] (+ acc (Math/exp el))) 0 input)]
     (mapv (fn [element] (/ (Math/exp element) den)) input)))
 
 ; Mit diesen Bausteinen und der Thread-Macro von Clojure können wir auf sehr simple Weise
-; den Forward-Pass unserer Neuronalen Netzes definieren
+; den Forward-Pass unserer Neuronalen Netzes definieren.
 
 (defn fc-nn-forward [params input]
   (let [w1 (params :weight1) b1 (params :bias1)
@@ -149,7 +149,8 @@
 ; Map mit den gleichen Schlüsseln wie unsere Parameter enthält.
 
 (def grads
-  (atom {:weight1 (zeros hidden-layer-size 2) :weight2 (zeros 2 hidden-layer-size) :bias1 (vec (repeat 2 0)) :bias2 (vec (repeat 2 0))}))
+  (atom {:weight1 (zeros hidden-layer-size 2) :weight2 (zeros 2 hidden-layer-size)
+         :bias1 (vec (repeat 2 0)) :bias2 (vec (repeat 2 0))}))
 
 ; Diese werden wir updaten, dividieren und auf 0 setzen müssen, wofür wir die folgenden Funktionen implementieren
 ; werden.
@@ -182,24 +183,24 @@
 
 ; Der Algorithmus, den wir benutzen werden, um die Gradienten bezüglich dieser Loss-Funktion zu berechnen
 ; heißt Backpropagation und ist eine Anwendung der Kettenregel der Analysis. Um die Backpropagation zu vereinfachen
-; und mehrfache Berechnungen zu vermeiden, sollten wir im Forward-Pass einige Werte zwischen Speichern.
+; und mehrfache Berechnungen zu vermeiden, sollten wir im Forward-Pass einige Werte zwischenspeichern.
 
 (def cache
-  (atom {:relu-activation [] :inner-activation []}))
+  (atom {:tanh-activation [] :inner-activation []}))
 
 (defn update-cache [dict relu-activation inner-activation]
-  (assoc dict :relu-activation relu-activation :inner-activation inner-activation))
+  (assoc dict :tanh-activation relu-activation :inner-activation inner-activation))
 
-; Dann müssen wir einen neuen Forward-Pass schreibe, der diesen Zwischenspeicher im Training berücksichtigt
+; Dann müssen wir einen neuen Forward-Pass schreibe, der diesen Zwischenspeicher im Training berücksichtigt.
 
 (defn fc-nn-forward-training [[w1 w2] [b1 b2] input]
-  (let [relu-activation (linear-layer w1 b1 input)
-        inner-activation (tanh-forward relu-activation)]
-    (swap! cache update-cache relu-activation inner-activation)
+  (let [tanh-activation (linear-layer w1 b1 input)
+        inner-activation (tanh-forward tanh-activation)]
+    (swap! cache update-cache tanh-activation inner-activation)
     (linear-layer w2 b2 inner-activation)))
 
-; Zu diesem Forward pass müssen wir dann den sogenannten Backward-Pass schreiben, der uns die Gradienten zu unseren
-; Parametern liefert. Dafür müssen für die einzelnen Layer unserer Forward-Passes gradienten berechnen und
+; Zu diesem Forward-Pass müssen wir dann den sogenannten Backward-Pass schreiben, der uns die Gradienten zu unseren
+; Parametern liefert. Dafür müssen für die einzelnen Layer unserer Forward-Passes Gradienten berechnen und
 ; entsprechend der Kettenregel mit den Gradienten der vorderen Layer multiplizieren.
 
 (defn one-hot [label num-of-classes]
@@ -239,7 +240,7 @@
 (defn backward [input output label]
   (let [fn-cache @cache
         weight2 (@parameters :weight2 Weight2)
-        relu-activation (fn-cache :relu-activation)
+        relu-activation (fn-cache :tanh-activation)
         inner-activation (fn-cache :inner-activation)
         ]
     (backward-step relu-activation inner-activation weight2 input output label)))
@@ -262,7 +263,7 @@
 ; Descent (SGD) mit Momentum. Dabei berechnen wir Batch-weise Gradienten und verändern unsere Parameter anhand
 ; ihrer Richtungen skaliert mit einer Learning-Rate, speichern und berücksichtigen aber auch vergangene Gradienten.
 
-(def momentum
+(def velocity-cache
   (atom {:weight1 (zeros hidden-layer-size 2) :weight2 (zeros 2 hidden-layer-size)
          :bias1 (vec (repeat 2 0)) :bias2 (vec (repeat 2 0))}))
 
@@ -271,12 +272,12 @@
     (matrix-subtraction value (scalar-multiplication learning-rate velocity))))
 
 (defn optimize [learning-rate rho]
-  (let [current-grads @grads current-momentum @momentum]
+  (let [current-grads @grads current-velocity-cache @velocity-cache]
     (swap! parameters
            (fn [params]
              (reduce-kv
                (fn [dic key val]
-                 (assoc dic key (optimize-step val (current-grads key) (current-momentum key) learning-rate rho)))
+                 (assoc dic key (optimize-step val (current-grads key) (current-velocity-cache key) learning-rate rho)))
                {} params)))))
 
 ; Training
@@ -300,7 +301,9 @@
         (swap! grads divide-grads (count batch))
         (optimize lr 0.99)
         (swap! grads zero-grads)
-        (swap! momentum zero-grads)))))
+        (swap! velocity-cache zero-grads)))))
+
+; Die Funktionen argmax und accuracy erleichtern den Umgang mit den Scores des Netzwerks.
 
 (defn argmax [seq]
   (first (reduce (fn [[index element] [arg acc]]
@@ -363,13 +366,12 @@
 (def validation-set (second data-split))
 (def test-set (last data-split))
 
-;(defn batch-ify [data batch-size] (map normalize-data (partition-all batch-size batch-size data)))
 (defn batch-ify [data batch-size] (partition-all batch-size batch-size data))
 
 (def batch-size 100)
 (def batches (batch-ify training-set batch-size))
 
-; Finally we can activate the Training-Loop and train for 10 Epochs with a Learning rate of 0.05
+; Abschließend führen wir den Trainingsloop für 10 Epochen mit einerLearning rate von 0.05 aus.
 
 (training fc-nn-forward-training batches 0.05 10)
 ; ...
@@ -404,7 +406,10 @@
 ; Um die Performance des Neuronalen Netzwerks zu verbessern, kann man noch sehr viele zusätzliche
 ; Verbesserungen vornehmen. Man kann zusätzliche Layer einführen, andere Activation-Functions nutzen,
 ; Regularization hinzufügen, Batch-Normalization einbauen und noch viele andere Techniken nutzen.
-; Fühlt Euch frei, diese nach Eurem belieben einzubauen
+; Fühlt Euch frei, diese nach Eurem belieben einzubauen.
+
+; Abschließend plotten wir noch einmal die Ergebnisse des Netzwerks, um zu visualisieren, was das selbst
+; gebaute Netzwerk gelernt hat.
 
 
 (def x-test-values (mapv first test-input))

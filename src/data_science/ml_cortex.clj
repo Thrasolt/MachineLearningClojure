@@ -13,11 +13,11 @@
     ))
 
 ; Wir haben in der vorherigen machine_learning_intro.clj gesehen, dass wir durch das Nutzen von schnellen
-; Matrixoperationen große Datenmengen verarbeiten können. Eine Library, die diesen Umstand nutzt ist die
+; Matrixoperationen große Datenmengen verarbeiten können. Eine Library, die diesen Umstand nutzt, ist die
 ; Neural Network Library Cortex, die das Herzstück dieser Lerneinheit bildet.
 
 
-; Der erste Schritt in diesem Machine Learning mit Clojure und Cortex tutorial besteht darin, das bekannte
+; Der erste Schritt in diesem Machine Learning mit Clojure und Cortex Tutorial besteht darin, das bekannte
 ; zweidimensionale Toy-dataset TwoMoons zu klassifizieren. Es besteht aus zwei opponierenden leicht versetzen
 ; Punktwolken, die wie Sichelmonde aussehen.
 
@@ -36,13 +36,13 @@
                   first
                   csv/parse-csv) (line-seq file))))))
 
-; Mithilfe dieser Funktion können wir unseren Datensatz nun einlesen
+; Mithilfe dieser Funktion können wir unseren Datensatz nun einlesen.
 (def two-moons-dataset (read-dataset-from-csv two-moons-csv-file-name #";"))
 
 ; Wie im Machine Learning üblich müssen wir unseren Datensatz noch in drei verschiedene
-; Datensätze aufteilen. Die Trainingsdaten werden genutzt um unser Model zu trainieren, die
+; Datensätze aufteilen. Die Trainingsdaten werden genutzt, um unser Model zu trainieren, die
 ; Validierungsdaten, um die Hyperparameter zu optimieren und die Testdaten um die Fähigkeit
-; unseres Models zu generalisierung auf ungesehenen Daten zu überprüfen.
+; unseres Models zu generalisieren auf ungesehenen Daten zu überprüfen.
 
 (defn train-val-test-split [data [train-quota val-quota]]
   (let [data-size (count data)
@@ -61,7 +61,7 @@
 (def test-set (last data-split))
 
 ; Da diese unsere Daten zweidimensional sind, können wir diese auch sehr leicht
-; visualisieren dazu nutzen wir die Library incanter
+; visualisieren dazu nutzen wir die Library Incanter.
 
 ; Wir extrahieren die Werte der x- und y-Achsen und zusätzlich die labels, um
 ; die beiden unterschiedlichen Klassen auch Farblich zu markieren
@@ -82,7 +82,7 @@
     :x-label "x-achse"
     :y-label "y-achse"))
 
-;Um den Plot anzuzeigen nutzen wir die view Funktion von incanter
+;Um den Plot anzuzeigen nutzen wir die view Funktion von incanter.
 (inc/view two-moon-plot)
 
 ; Nun haben wir die notwendige Vorbereitung der Daten abgeschlossen und
@@ -97,7 +97,7 @@
 
 ; Unser Model erwartet jeden Input in das Netzwerk als Map, mit dem Key
 ; :input für die eingehenden Daten und dem key :output für die ausgehenden.
-; Dafür schreiben wir die folgenden Funktionen
+; Dafür schreiben wir die folgenden Funktionen.
 
 (defn prepare-2class-label [label] (if (< label 1) [1.0 0.0] [0.0 1.0]))
 
@@ -115,6 +115,10 @@
               (layers/linear 2)
               (layers/softmax :id :output)
               ]))
+
+; Wir trainieren das Netzwerk mit einen Batchsize von 200, das heißt, wir verarbeiten jeweils 200 Punkte
+; gleichzeitig. Außerdem trainieren wir für 100 Epochen, was bedeutet, dass wir den Trainings-Loop 100 Mal
+; ausführen werden.
 
 (def trained  (train/train-n model training-input validation-input
                              :batch-size 200
@@ -146,7 +150,7 @@
 (inc/view two-moon-classification-plot)
 
 ; Wir sehen, dass unser Model fast alle Punkte aus dem Two-Moon-Dataset richtig klassifiziert hat
-; In Zahlen ausgedrückt wird die Genauigkeit einen Klassifizieres so ausgerechnet
+; In Zahlen ausgedrückt wird die Genauigkeit einen Klassifizierers so ausgerechnet.
 
 (defn accuracy [labels predictions]
   (- 1.0 (/ (apply + (map (fn [label pred] (Math/abs (- label pred))) labels predictions))
@@ -161,7 +165,7 @@
 ; wget https://pjreddie.com/media/files/mnist_test.csv
 ; wget https://pjreddie.com/media/files/mnist_train.csv
 
-; Zuerst laden wir die Trainings- und Testdaten aus den zwei csv-Dateien
+; Zuerst laden wir die Trainings- und Testdaten aus den zwei csv-Dateien.
 
 (def MNIST-training-csv-file-name "resources/MNIST/mnist_train.csv")
 (def MNIST-test-csv-file-name "resources/MNIST/mnist_test.csv")
@@ -178,7 +182,7 @@
 (def MNIST-train-raw (read-MNIST-dataset-from-csv MNIST-training-csv-file-name))
 (def MNIST-test-raw (read-MNIST-dataset-from-csv MNIST-test-csv-file-name))
 
-; Da wir Testdaten haben brauchen wir hier nur einen Split der Trainings Daten in Test-
+; Da wir Testdaten haben, brauchen wir hier nur einen Split der Trainings Daten in Test-
 ; und Validierungsdaten
 (def MNIST-split (train-val-test-split MNIST-train-raw [0.8 0.2]))
 
@@ -188,6 +192,11 @@
 (def image-width 28)
 (def image-height 28)
 (def number-of-classes 10)
+
+; Das es sich bei den Daten des MNIST Dataset um Bilder handelt werden wir hier kein Fully-Connected-
+; Neural-Network, sondern ein Convolutional-Neural-Network. Bei dem die Gewichte statt aus einfachen Matrizen
+; aus komplexen Faltungsfiltern bestehen. Zur Klassifizierung selbst werden dann aber in den abschließenden
+; Layern des Netzwerks auch noch Fully-Connected-Layer benutzt.
 
 (def model-description
   [(layers/input image-width image-height 1 :id :input)
@@ -213,6 +222,10 @@
 (def MNIST-validation-input (transform-MNIST-for-cortex validation-set))
 (def MNIST-test-input (map (fn [entry] (dissoc entry :label)) (transform-MNIST-for-cortex MNIST-test-raw)))
 
+; Wir trainieren das Netzwerk mit einen Batchsize von 200, das heißt, wir verarbeiten jeweils 200 Bilder
+; gleichzeitig. Außerdem trainieren wir für 10 Epochen, was bedeutet, dass wir den Trainings-Loop 10 Mal
+; ausführen werden.
+
 (def trained-MNIST  (train/train-n model-description MNIST-training-input MNIST-validation-input
                              :batch-size 200
                              :network-filestem "resources/MNIST-model"
@@ -236,6 +249,10 @@
   MNIST-test-labels MNIST-prediction-labels)) (count MNIST-test-labels))
 ; => 0.8478
 
+; Nun haben wir gesehen, wie wir komplexe Klassifizierer mit der Cortex Library schreiben und trainieren können.
+; Allerdings ist die API dieser Library so sehr "high level", dass es schwierig ist nachvollziehen, was genau
+; die einzelnen Schritte sind. Um das genauer zu beleuchten, sehen wir uns als nächstes eine Implementierung
+; eines rudimentären Klassifizierers in reinem clojure an, siehe ml-clojure.clj an.
 
 
 
