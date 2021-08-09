@@ -154,6 +154,11 @@
 
 ; 4. Loss-Funktion
 
+; Die Loss-Function ist eine Funktion, die gerade so definiert ist, dass sie niedrig ist, wenn unser Klassifizierer
+; sehr genau ist und einen sehr hohen Wert annimmt, wenn dieser viele Fehler macht. Das Ziel des Trainings ist es, die
+; Loss-Function zu minimieren. Ein Trainings-Loss von 0 bedeutet also, dass unser Klassifizierer keine Fehler mehr
+; macht.
+
 ; Um das Lernen unseres Neuronalen Netzes zu ermöglichen, müssen wir die Parameter mithilfe von den Gradienten
 ; unserer Parameter optimieren. Um die Gradienten abzuspeichern, werden wir ein weiteres Atom benutzen, das eine
 ; Map mit den gleichen Schlüsseln wie unsere Parameter enthält.
