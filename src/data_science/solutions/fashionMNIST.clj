@@ -65,7 +65,7 @@
 (def trained-MNIST  (train/train-n model-description MNIST-training-input MNIST-validation-input
                              :batch-size 200
                              :network-filestem "resources/FashionMNIST-model"
-                             :epoch-count 1))
+                             :epoch-count 10))
 
 
 (defn argmax [seq]

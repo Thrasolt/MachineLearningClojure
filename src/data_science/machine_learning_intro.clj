@@ -99,7 +99,7 @@
 ; Was passiert, wenn wir wirklich große Matrizen nehmen?
 
 (defn random-matrix [rows, columns]
-  (vec (repeat rows (vec (repeat columns (rand))))))
+  (vec (repeat rows (vec (repeatedly columns rand)))))
 
 (random-matrix 3 2)
 ; =>
@@ -107,7 +107,7 @@
 ; [0.2709231708880665 0.2709231708880665]
 ; [0.2709231708880665 0.2709231708880665]]
 
-(time (def result-pure (matrix-mul (random-matrix 100 300) (random-matrix 300 200))))
+(time (matrix-mul (random-matrix 100 300) (random-matrix 300 200)))
 ; "Elapsed time: 817.241124 msecs"
 
 ; Für wirklich große Matrizen, ist diese Berechnungszeit nicht akzeptabel
@@ -117,7 +117,7 @@
 (def n-matrix-1 (dge 100 300 (repeat (* 100 300) (rand))))
 (def n-matrix-2 (dge 300 200 (repeat (* 300 200) (rand))))
 
-(time (def result-n (mm n-matrix-1 n-matrix-2)))
+(time (mm n-matrix-1 n-matrix-2))
 ; "Elapsed time: 0.980913 msecs"
 
 ; Man erkennt direkt, dass diese Berechnung mit der neanderthal library geschwindigkeitsmäßig
@@ -133,7 +133,7 @@
 (def m-matrix-1 (matrix (random-matrix 100 300)))
 (def m-matrix-2 (matrix (random-matrix 300 200)))
 
-(time (def result-m (mmul m-matrix-1 m-matrix-2)))
+(time (mmul m-matrix-1 m-matrix-2))
 ; "Elapsed time: 524.244884 msecs"
 
 ; Diese Berechnung zeigt, dass auch die standard Matrix library schneller als die
@@ -141,3 +141,13 @@
 ; Neandethaler library herankommt und das bereits ohne Nutzung einer Graphikkarte
 
 ; Siehe ml_cortex.clj
+
+
+(comment "
+Falls die REPL Session nicht out-of-the-box funktioniert, beachten Sie bitte diese Stelle aus der Dokumentation
+
+Neanderhtal will use the native CPU MKL binaries from that jar automatically, so you don’t need to do anything else.
+If the jar is not present, Neanderthal will expect you to have a system-wide MKL installation as explained in
+Native Engine Requirements.33 Note: MKL distribution size is 750 MB! Lein will download it the first time you include
+it, which might take some time, so it’s a good idea to run lein deps and wait each time you update the version.
+")

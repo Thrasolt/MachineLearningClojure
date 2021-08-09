@@ -7,7 +7,6 @@
     [cortex.nn.layers :as layers]
     [cortex.nn.network :as network]
     [incanter.core :as inc]
-    [incanter.io :as inc-io]
     [incanter.charts :as inc-charts]
     [clojure.string :as str]
     ))
@@ -19,7 +18,9 @@
 
 ; Der erste Schritt in diesem Machine Learning mit Clojure und Cortex Tutorial besteht darin, das bekannte
 ; zweidimensionale Toy-dataset TwoMoons zu klassifizieren. Es besteht aus zwei opponierenden leicht versetzen
-; Punktwolken, die wie Sichelmonde aussehen.
+; Punktwolken, die wie Sichelmonde aussehen. Der obere und der untere Sichelmond bilden jeweils eine eigene Klasse.
+; Unser Ziel ist jedem Punkt die richtige Klasse zuzuordnen. Durch die Sichelform der Klassen ist eine lineare
+; Trennung der Daten nicht möglich.
 
 ; Dafür müssen wir diese Daten zuerst importieren. Um das zu erleichtern, findet Ihr im resources Ordner
 ; eine csv-Datei names two-moons.csv, die 5.000 klassifizierte Punkte enthält
@@ -60,7 +61,7 @@
 (def validation-set (second data-split))
 (def test-set (last data-split))
 
-; Da diese unsere Daten zweidimensional sind, können wir diese auch sehr leicht
+; Da unsere Daten zweidimensional sind, können wir diese auch sehr leicht
 ; visualisieren dazu nutzen wir die Library Incanter.
 
 ; Wir extrahieren die Werte der x- und y-Achsen und zusätzlich die labels, um
@@ -108,13 +109,30 @@
 (def validation-input (transform-for-cortex validation-set))
 (def test-input (map (fn [entry] (dissoc entry :output)) (transform-for-cortex test-set)))
 
+; Die Dimensionen der Eingabedaten eines zweidimensionalen sind immer etwas trivial, aber es
+; dient der lesbarkeit sie extra zu definieren. Deren Anordnung folgt der Konvention für Bilder.
+
+(def data-width 2)
+(def data-height 1)
+(def data-channels 1)
+(def two-moons-number-of-classes 2)
+(def two-moons-hidden-size 16)
+
+; Unser Model besteht aus einem Input-Layer, einem Output-Layer und zwei Hidden-Layern. Auf einen Hidden-Layer
+; folgt eine nicht lineare Aktivierungsfunktion, damit das Netzwerk als Funktion nicht in eine lineare
+; Abbildung zusammenfällt. Erstaunlich ist, dass durch simple nicht lineare Funktionen theoretisch bereits
+; beliebige Funktionen approximiert werden können.
+
 (def model (network/linear-network
-             [(layers/input 2 1 1 :id :input)
-              (layers/linear->tanh 16)
-              (layers/linear->tanh 16)
-              (layers/linear 2)
+             [(layers/input data-width data-height data-channels :id :input)
+              (layers/linear->tanh two-moons-hidden-size)
+              (layers/linear->tanh two-moons-hidden-size)
+              (layers/linear two-moons-number-of-classes)
               (layers/softmax :id :output)
               ]))
+
+; Der Wrapper "network/linear-network" ist an dieser Stelle optional und kann auch weggelassen werden, da
+; "train/train-n" diesen dann intern aufruft.
 
 ; Wir trainieren das Netzwerk mit einen Batchsize von 200, das heißt, wir verarbeiten jeweils 200 Punkte
 ; gleichzeitig. Außerdem trainieren wir für 100 Epochen, was bedeutet, dass wir den Trainings-Loop 100 Mal
@@ -161,14 +179,20 @@
 ; Unser Klassifizierer hat 99.8% der Punkte richtig klassifiziert
 
 ; Ausgehend von diesem Toy-Example versuchen wir nun das bekannte MNIST Dataset zu klassifizieren
-; Bitte ladet diese in runter und speichert sie unter resources/MNIST.
-; wget https://pjreddie.com/media/files/mnist_test.csv
-; wget https://pjreddie.com/media/files/mnist_train.csv
+; Wird laden diese runter und speichern sie unter resources/MNIST.
 
-; Zuerst laden wir die Trainings- und Testdaten aus den zwei csv-Dateien.
+(defn download-data [uri file]
+  (with-open [in (io/input-stream uri)
+              out (io/output-stream file)]
+    (io/copy in out)))
 
 (def MNIST-training-csv-file-name "resources/MNIST/mnist_train.csv")
 (def MNIST-test-csv-file-name "resources/MNIST/mnist_test.csv")
+
+(download-data "https://pjreddie.com/media/files/mnist_train.csv", MNIST-training-csv-file-name)
+(download-data "https://pjreddie.com/media/files/mnist_test.csv", MNIST-test-csv-file-name)
+
+; Zuerst laden wir die Trainings- und Testdaten aus den zwei csv-Dateien.
 
 (defn read-MNIST-dataset-from-csv
   "Takes cvs file name and reads data."
@@ -189,17 +213,32 @@
 (def training-set (first MNIST-split))
 (def validation-set (second MNIST-split))
 
+; Zu nächst definieren wir ein paar nützliche Konstanten, die sich aus den Eingabe-Daten, Bildern ergeben.
+; Ein Bild ist immer vom Format Breite x Höhe x 3, wobei Breite und Höhe diese Werte in Pixeln beschreiben
+; und die Drei für die drei Farbkanäle steht. Im MNIST Datensatz sind die Bilder vom Format 28x28x3.
+
 (def image-width 28)
 (def image-height 28)
+(def num-of-color-channels 1)
 (def number-of-classes 10)
 
-; Das es sich bei den Daten des MNIST Dataset um Bilder handelt werden wir hier kein Fully-Connected-
-; Neural-Network, sondern ein Convolutional-Neural-Network. Bei dem die Gewichte statt aus einfachen Matrizen
+; Das es sich bei den Daten des MNIST Dataset um Bilder handelt werden wir hier kein Fully-Connected-Neural-Network
+; benutzen, sondern ein Convolutional-Neural-Network. Bei dem die Gewichte statt aus einfachen Matrizen
 ; aus komplexen Faltungsfiltern bestehen. Zur Klassifizierung selbst werden dann aber in den abschließenden
 ; Layern des Netzwerks auch noch Fully-Connected-Layer benutzt.
 
+; Was bedeuten die Zahlen in "layers/convolutional 5 0 num-of-color-channels 20)"? Die fünf steht für für eine
+; Filtergröße von 5x5, die 0 steht dafür, dass die Rändern der Bilder nicht mit Nullen aufgefüllt werden, Stichwort
+; zero padding, die eins steht für einen stride von 1, das heißt, das der Filter mit einer Schrittweite von 1 über
+; das Bild bewegt wird. Die 20 steht für die Anzahl der Filter, die auf das Bild angewandt werden.
+
+; Grafik für besseres Verständnis:
+; https://1.cms.s81c.com/sites/default/files/2021-01-06/ICLH_Diagram_Batch_02_17A-ConvolutionalNeuralNetworks-WHITEBG.png
+
+; Max Pooling ist ein ähnlicher Prozess, der die Dimensionen des Inputs herunter skalieren soll.
+
 (def model-description
-  [(layers/input image-width image-height 1 :id :input)
+  [(layers/input image-width image-height num-of-color-channels :id :input)
    (layers/convolutional 5 0 1 20)
    (layers/max-pooling 2 0 2)
    (layers/relu)
@@ -226,10 +265,11 @@
 ; gleichzeitig. Außerdem trainieren wir für 10 Epochen, was bedeutet, dass wir den Trainings-Loop 10 Mal
 ; ausführen werden.
 
+; Vor allem mit älterer Hardware oder CPU kann diese Ausführung über eine Stunde dauern.
 (def trained-MNIST  (train/train-n model-description MNIST-training-input MNIST-validation-input
                              :batch-size 200
                              :network-filestem "resources/MNIST-model"
-                             :epoch-count 10))
+                             :epoch-count 1))
 
 
 (defn argmax [seq]

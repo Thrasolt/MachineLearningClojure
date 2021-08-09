@@ -4,7 +4,6 @@
     [clojure-csv.core :as csv]
     [clojure.java.io :as io]
     [incanter.core :as inc]
-    [incanter.io :as inc-io]
     [incanter.charts :as inc-charts]
     ))
 
@@ -13,7 +12,37 @@
 ; ohne die Hilfe von anderen Libraries. Dieser Klassifizierer soll dann das zweidimensionale Toy-dataset
 ; TwoMoons klassifizieren.
 
-; Grundlegende Operationen
+; Da das TwoMoon Dataset aus zwei-dimensionalen Punkten besteht, die aus zwei verschiedenen
+; Klassen stammen, brauchen wir ein neuronales Netzwerk, das zwei-dimensionale Punkte als Input
+; akzeptiert und auch einen zwei-dimensionale Vektor ausgibt, der aus Klassen-Scores besteht,
+; die abgeben, wie sicher das Netzwerk ist, dass die Eingabe zur entsprechenden Klasse gehört.
+; Wir werden ein schlichtes neuronales Netzwerk mit einem Hidden-Layer konstruieren, der aus
+; 16 Neuronen besteht und zwei dimensionale Punkte als Input akzeptiert und einen Vektor mit
+; zwei Klassen-Scores zurückgibt.
+
+
+; Inhaltsverzeichnis
+; 1. Grundlegende Operationen
+; 2. Weight Initialization
+; 3. Konstruktion des Netzwerks
+; 4. Loss-Funktion
+; 5. Backpropagation
+; 6. Optimierung
+; 7. Trainings-Loop
+; 8. Data Preprocessing
+; 9. Training
+; 10. Validation
+; 11. Testing
+
+; Wir definieren erst ein paar nützliche grundlegende Operationen. Da ein neurales Netzwerk über seine Architektur
+; und seine Gewichte definiert wird und es lernt, indem diese Gewichte verändert werden, müssen wir diese so
+; anlegen, dass sie verändert werden können. Danach können wir die Architektur festlegen. Trainiert wir unser Netzwerk
+; dadurch, dass eine Loss-Function definiert wird. Bezüglich dieser Loss-Function werden dann durch Backpropagation
+; Gradienten berechnet mit deren Hilfe durch Methoden der Optimierung die Gewichte verändert werden. Auf dem
+; Validation-Set optimieren wir unsere Hyperparameter, wie die Learning-Rate und ganz zum Schluss prüfen wir, wie gut
+; unser Netzwerk generalisiert, indem wir es auf das Testset anwenden.
+
+; 1. Grundlegende Operationen
 
 ; Zunächst müssen wir grundlegende Operation der Linearen Algebra definieren, denn die
 ; Matrix-Vektor-Multiplikationen bilden die Grundlage aller neuronalen Netzwerke.
@@ -31,25 +60,16 @@
 (defn vector-addition [left right]
   (mapv + left right))
 
-(defn elementwise-multiplication [left right]
-  (mapv
-    (fn [l r] (if (vector? l) (mapv * l r) (* l r)))
-    left right))
+(defn lift-to-elementwise [op]
+  (fn [left right]
+    (mapv
+      (fn [l r] (if (vector? l) (mapv op l r) (op l r)))
+      left right)))
 
-(defn elementwise-division[left right]
-  (mapv
-    (fn [l r] (if (vector? l) (mapv / l r) (/ l r)))
-    left right))
-
-(defn matrix-addition [left right]
-  (mapv
-    (fn [l r] (if (vector? l) (mapv + l r) (+ l r)))
-    left right))
-
-(defn matrix-subtraction [left right]
-  (mapv
-    (fn [l r] (if (vector? l) (mapv - l r) (- l r)))
-    left right))
+(defn elementwise-multiplication [left right] ((lift-to-elementwise *) left right))
+(defn elementwise-division[left right] ((lift-to-elementwise /) left right))
+(defn matrix-addition [left right] ((lift-to-elementwise +) left right))
+(defn matrix-subtraction [left right] ((lift-to-elementwise -) left right))
 
 (defn vector-subtraction [left right]
   (mapv - left right))
@@ -60,17 +80,7 @@
 (defn transpose [matrix]
   (apply mapv vector matrix))
 
-
-; Neuronales Netz
-; Da das TwoMoon Dataset aus zwei-dimensionalen Punkten besteht, die aus zwei verschiedenen
-; Klassen stammen, brauchen wir ein neuronales Netzwerk, das zwei-dimensionale Punkte als Input
-; akzeptiert und auch einen zwei-dimensionale Vektor ausgibt, der aus Klassen-Scores besteht,
-; die abgeben, wie sicher das Netzwerk ist, dass die Eingabe zur entsprechenden Klasse gehört.
-; Wir werden ein schlichtes neuronales Netzwerk mit einem Hidden-Layer konstruieren, der aus
-; 16 Neuronen besteht und zwei dimensionale Punkte als Input akzeptiert und einen Vektor mit
-; zwei Klassen-Scores zurückgibt.
-
-; Weight Initialization
+; 2. Weight Initialization
 ; Zunächst müssen wir die Weights und Biases der Neuronen in den beiden Layern initialisieren, es gibt
 ; verschiedene Ansätze der Gewichts-Initialisierung. Wir verwenden an dieser Stelle die random Funktion
 ; von Clojure und bilden diese auf einen Abschnitt zwischen -1 und 1 ab.
@@ -79,11 +89,11 @@
 (defn init-singly-entry []
   (* 0.01 (+ -1 (* 2 (Math/random)))))
 
-(defn init-single-row [rows columns]
+(defn init-single-row [columns]
   (vec (repeatedly columns init-singly-entry)))
 
 (defn init-weights [rows columns]
-  (vec (repeatedly rows (fn [] (init-single-row rows columns)))))
+  (vec (repeatedly rows (fn [] (init-single-row columns)))))
 
 (defn zeros [rows columns]
   (vec (repeat rows (vec (repeat columns 0.0)))))
@@ -106,7 +116,7 @@
 (def parameters
   (atom {:weight1 Weight1 :weight2 Weight2 :bias1 bias1 :bias2 bias2}))
 
-; Konstruktion des Netzwerks
+; 3. Konstruktion des Netzwerks
 
 ; Der grundlegende Baustein jeden Fully-Connected neuronalen Netzes ist, der lineare Layer, der
 ; aus einer Matrix-Vektor-Multiplikation besteht.
@@ -142,7 +152,7 @@
                              (linear-layer w2 b2)
                              (softmax))) input)))
 
-; Loss-Funktion
+; 4. Loss-Funktion
 
 ; Um das Lernen unseres Neuronalen Netzes zu ermöglichen, müssen wir die Parameter mithilfe von den Gradienten
 ; unserer Parameter optimieren. Um die Gradienten abzuspeichern, werden wir ein weiteres Atom benutzen, das eine
@@ -162,7 +172,7 @@
 (defn divide-grads [dic batch-size]
   (reduce-kv (fn [dic key val] (assoc dic key (scalar-multiplication (/ 1 batch-size) val))) {} dic))
 
-(defn zero-grads [dic]
+(defn zero-grads [_]
   {:weight1 (zeros hidden-layer-size 2) :weight2 (zeros 2 hidden-layer-size)
    :bias1 (vec (repeat 2 0)) :bias2 (vec (repeat 2 0))})
 
@@ -179,7 +189,7 @@
 (defn batch-loss [output labels]
   (mapv cross-entropy-loss output labels))
 
-; Backpropagation
+; 5. Backpropagation
 
 ; Der Algorithmus, den wir benutzen werden, um die Gradienten bezüglich dieser Loss-Funktion zu berechnen
 ; heißt Backpropagation und ist eine Anwendung der Kettenregel der Analysis. Um die Backpropagation zu vereinfachen
@@ -188,8 +198,8 @@
 (def cache
   (atom {:tanh-activation [] :inner-activation []}))
 
-(defn update-cache [dict relu-activation inner-activation]
-  (assoc dict :tanh-activation relu-activation :inner-activation inner-activation))
+(defn update-cache [dict tanh-activation inner-activation]
+  (assoc dict :tanh-activation tanh-activation :inner-activation inner-activation))
 
 ; Dann müssen wir einen neuen Forward-Pass schreibe, der diesen Zwischenspeicher im Training berücksichtigt.
 
@@ -227,23 +237,23 @@
      (/ (* ef2 (+ (* y2 ef2) (- (* y1 ef1) (* y2 score-sum))))
         denominator)]))
 
-(defn backward-step [relu-activation inner-activation weight2 input output label]
+(defn backward-step [tanh-activation inner-activation weight2 input output label]
   (let [cross-grad (cross-entropy-grad output label)
         bias-2-grad cross-grad
-        Weight-2-grad (weight-grad relu-activation cross-grad)
+        Weight-2-grad (weight-grad tanh-activation cross-grad)
         inner-grad (input-grad weight2 cross-grad)
-        inner-relu-grad (tanh-backward inner-activation inner-grad)
-        bias-1-grad inner-relu-grad
-        Weight-1-grad (weight-grad input inner-relu-grad)]
+        inner-tanh-grad (tanh-backward inner-activation inner-grad)
+        bias-1-grad inner-tanh-grad
+        Weight-1-grad (weight-grad input inner-tanh-grad)]
     [Weight-1-grad bias-1-grad Weight-2-grad bias-2-grad]))
 
 (defn backward [input output label]
   (let [fn-cache @cache
         weight2 (@parameters :weight2 Weight2)
-        relu-activation (fn-cache :tanh-activation)
+        tanh-activation (fn-cache :tanh-activation)
         inner-activation (fn-cache :inner-activation)
         ]
-    (backward-step relu-activation inner-activation weight2 input output label)))
+    (backward-step tanh-activation inner-activation weight2 input output label)))
 
 ; Mit Forward- und Backward-Pass bewaffnet können wir nun beginnen, eine Funktion zu schreiben, die eine ganze
 ; Batch an Daten verarbeiten kann.
@@ -257,7 +267,7 @@
         output))
     batch labels))
 
-; Optimierung
+; 6. Optimierung
 
 ; Als Strategie zur Optimierung unserer Parameter, verwenden wir den Klassiker schlechthin. Stochastik Gradient
 ; Descent (SGD) mit Momentum. Dabei berechnen wir Batch-weise Gradienten und verändern unsere Parameter anhand
@@ -280,11 +290,11 @@
                  (assoc dic key (optimize-step val (current-grads key) (current-velocity-cache key) learning-rate rho)))
                {} params)))))
 
-; Training
+;7. Trainings-Loop
 
 ; Nun können wir einen Trainings-Loop definieren, der dem von Cortex in der anderen REPL-Session gleicht.
 
-(defn train [forward data labels lr]
+(defn train [forward data labels]
   (let [params @parameters
         weights [(params :weight1) (params :weight2)]
         biases [(params :bias1) (params :bias2)]
@@ -297,7 +307,7 @@
   (dotimes [_ epochs]
     (doseq [batch batches]
       (let [data (mapv (partial take 2) batch) labels (mapv last batch)]
-        (train forward data labels lr)
+        (train forward data labels)
         (swap! grads divide-grads (count batch))
         (optimize lr 0.99)
         (swap! grads zero-grads)
@@ -315,7 +325,7 @@
   (- 1.0 (/ (apply + (map (fn [label pred] (Math/abs (- label pred))) labels predictions))
             (count labels))))
 
-; Data Preprocessing
+; 8. Data Preprocessing
 
 ; Das Dat Processing verläuft hier analog zur anderen REPL-Session mit der Ausnahme, dass wir die Daten hier noch
 ; selbst normalisieren.
@@ -371,6 +381,7 @@
 (def batch-size 100)
 (def batches (batch-ify training-set batch-size))
 
+; 9. Training
 ; Abschließend führen wir den Trainingsloop für 10 Epochen mit einerLearning rate von 0.05 aus.
 
 (training fc-nn-forward-training batches 0.05 10)
@@ -378,7 +389,7 @@
 ; 0.212801313690543
 ; => nil
 
-
+; 10. Validation
 (def training-input (mapv (comp vec (partial take 2)) training-set))
 (def training-labels (mapv last training-set))
 (def training-predictions (fc-nn-forward @parameters training-input))
@@ -394,6 +405,8 @@
 
 (accuracy validation-labels validation-pred-labels)
 ; => 0.902
+
+; 11. Testing
 
 (def test-input (mapv (comp vec (partial take 2)) test-set))
 (def test-labels (mapv last test-set))
